@@ -1,0 +1,25 @@
+{
+  "name": "squel",
+  "version": "4.0.0",
+  "main": "squel.js",
+  "ignore": [
+    "**/.*",
+    "Gruntfile.js",
+    "node_modules",
+    "public",
+    "test",
+    "src",
+    "docs"
+  ],
+  "homepage": "https://github.com/hiddentao/squel",
+  "_release": "4.0.0",
+  "_resolution": {
+    "type": "version",
+    "tag": "4.0.0",
+    "commit": "e49abc3602b330620cc9471aaf9874ee915df82d"
+  },
+  "_source": "git://github.com/hiddentao/squel.git",
+  "_target": "~4.0.0",
+  "_originalSource": "squel",
+  "_direct": true
+}

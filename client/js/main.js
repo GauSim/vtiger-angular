@@ -91,6 +91,45 @@ app.run(function ($http, $rootScope) {
         })
     }
     
+    function create (type, item){
+        var session = JSON.parse(localStorage.getItem("vt-login"));
+        var task = {
+            operation:'create',
+            sessionName :session.sessionName,
+            elementType:type,
+            element: JSON.stringify(item)
+        }
+        var req = {
+             method: 'POST',
+             url: endPointUrl,
+             headers: {
+               'Content-Type': 'application/x-www-form-urlencoded'
+             },
+             data: $.param(task)
+        } 
+        
+        return $http(req).then(__response);
+        
+    }
+    
+    function query (type) {
+         var session = JSON.parse(localStorage.getItem("vt-login"));
+        
+        
+        
+        var query = 'SELECT * FROM '+ type +';';
+            //[WHERE <conditionals>]
+            //[ORDER BY <column_list>]
+            //[LIMIT [<m>, ] <n>]";
+        var task = {
+            operation:'query',
+            sessionName:session.sessionName,
+            query: squel.select().from(type).toString()+';'
+        }
+        return $http.get(endPointUrl+'?'+$.param(task)).then(__response);
+    }
+    
+    
     _getToken(userName, userKey)
     .then(_login)
     .then(_storeSession)
@@ -98,5 +137,23 @@ app.run(function ($http, $rootScope) {
     .then(function (types) {
         console.log(types);
         $rootScope.output = types;
+        
+        
+        var item = {
+            lastname: 'Gausmann',
+            firstname : 'Simon',
+            phone:'',
+            email:'',
+            assigned_user_id : 1
+        };
+        
+       /* create('Contacts', item).then(function (r) {
+           console.log(r);
+        }) */
+        
+        query('Contacts').then(function (r) {
+           console.log(r);
+        })
+        
     });
 });
