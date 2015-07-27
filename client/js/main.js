@@ -10,14 +10,14 @@ app.run(function ($http, $rootScope) {
     var userKey ='YaPt4pWqt38pPgOs';
     var userName = 'admin';
     
-    var _getToken = function (username,key) {
+    var __getToken = function (username,key) {
         return $http.get(endPointUrl+'?operation=getchallenge&username='+username)
         .then(function(data){ 
             return { token:data.data.result.token, key:key, username:username };
             
         });
     }
-    var _login = function(tokenObj){
+    var __login = function(tokenObj){
         
         var hash = CryptoJS.MD5(tokenObj.token+tokenObj.key);
         var accessKey = hash.toString();
@@ -39,63 +39,38 @@ app.run(function ($http, $rootScope) {
                'Content-Type': 'application/x-www-form-urlencoded'
              },
              data: $.param(params)
-        }    
-       
-        return $http(req)
-        .then(function(result){
-            var data = result.data;
-            if(data.success)
-            {
-                return data.result; 
-            }
-            else
-                throw data.error;
-        })
-        .catch(function(errr){
-            console.log(errr);
-            throw errr;
-        });
+        };
+        return $http(req).then(__response)
     }
-    var _storeSession  = function (userObj) {
-        var _userObj = {
-            sessionName: "4f929b8655b54668e0482",
-            userId: "19x1",
-            version: "0.22",
-            vtigerVersion: "6.3.0"
-        }
+    var __storeSession  = function (userObj) {
         if(typeof(Storage) !== "undefined") {
             // Code for localStorage/sessionStorage.
             var str = JSON.stringify(userObj);
             localStorage.setItem("vt-login",str);
-        } else {
+        } else 
             throw 'fail on localStorage';
-        }
         return userObj
     }
-
     var __response = function (r) {
         if(r.data.success){
             return r.data.result;
         }else
         throw r.data.error;
     }
+    var __getSession = function (){ return JSON.parse(localStorage.getItem("vt-login")); }
 
-    function listtypes(userObj) {
+    function listtypes() {
         var qry = {
             operation:'listtypes',
-            sessionName:userObj.sessionName
+            sessionName:__getSession().sessionName
         };
-        var url = endPointUrl+'?'+$.param(qry);
-        return $http.get(url).then(function (r) {
-            return __response(r);
-        })
+        return $http.get(endPointUrl+'?'+$.param(qry)).then(__response);
     }
     
     function create (type, item){
-        var session = JSON.parse(localStorage.getItem("vt-login"));
         var task = {
             operation:'create',
-            sessionName :session.sessionName,
+            sessionName :__getSession().sessionName,
             elementType:type,
             element: JSON.stringify(item)
         }
@@ -107,37 +82,62 @@ app.run(function ($http, $rootScope) {
              },
              data: $.param(task)
         } 
-        
         return $http(req).then(__response);
-        
     }
-    
-    function query (type) {
-         var session = JSON.parse(localStorage.getItem("vt-login"));
-        
-        
-        
-        var query = 'SELECT * FROM '+ type +';';
-            //[WHERE <conditionals>]
-            //[ORDER BY <column_list>]
-            //[LIMIT [<m>, ] <n>]";
+    function byId(type, id) {
+        return query('SELECT * FROM '+type+' WHERE id = '+id+';');
+    }
+    function list(type){
+        var q = squel.select().from(type).toString()+';';
+        return query(q);
+    }
+    function query (query) {
         var task = {
             operation:'query',
-            sessionName:session.sessionName,
-            query: squel.select().from(type).toString()+';'
+            sessionName:__getSession().sessionName,
+            query: query
         }
         return $http.get(endPointUrl+'?'+$.param(task)).then(__response);
     }
     
+    function vtigerModule(type,info) {
+        var self = this;
+        self.information = info;
+        self.byId = function (val){ return byId(type, val); };
+        self.list = function (val){ return list(type); };
+        self.create = function (item){ return create(type, item); };
+        return self;
+    }
+    function vtigerConnecter (r) {
+        var self = this;
+        for (var k in  r.information){
+            self[k] = new vtigerModule(k, r.information[k]);
+        }
+    }
     
-    _getToken(userName, userKey)
-    .then(_login)
-    .then(_storeSession)
+    __getToken(userName, userKey)
+    .then(__login)
+    .then(__storeSession)
     .then(listtypes)
-    .then(function (types) {
-        console.log(types);
-        $rootScope.output = types;
+    .then(function (r) {
+        //console.log(r);
+        // $rootScope.output = r;
         
+        var vtiger = new vtigerConnecter(r);
+        window.vtiger = vtiger;
+        
+        console.dir(vtiger);
+        $rootScope.output = vtiger;
+        
+        vtiger.Contacts.byId('12x7').then(function (r) {
+           console.log(r);
+        });
+        
+        vtiger.Contacts.list().then(function (r) {
+           console.log(r);
+        });
+        
+        /*
         
         var item = {
             lastname: 'Gausmann',
@@ -147,13 +147,19 @@ app.run(function ($http, $rootScope) {
             assigned_user_id : 1
         };
         
-       /* create('Contacts', item).then(function (r) {
-           console.log(r);
-        }) */
-        
-        query('Contacts').then(function (r) {
+        create('Contacts', item).then(function (r) {
            console.log(r);
         })
+        
+        list('Contacts').then(function (r) {
+           console.log(r);
+        });
+        
+        byId('Contacts','12x7').then(function (r) {
+           console.log(r);
+        });
+        
+        */
         
     });
 });
